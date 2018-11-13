@@ -4,25 +4,23 @@ import com.gpudb.Type
 import com.gpudb.GPUdb
 import com.gpudb.GPUdbBase
 import com.gpudb.GenericRecord
-
 import java.io.Serializable
-import scala.beans.{ BeanProperty, BooleanBeanProperty }
+
+import scala.beans.{BeanProperty, BooleanBeanProperty}
 import com.typesafe.scalalogging.LazyLogging
 import com.kinetica.spark.util.ConfigurationConstants._
-
 import com.kinetica.spark.ssl.X509KeystoreOverride
 import com.kinetica.spark.ssl.X509TrustManagerOverride
 import com.kinetica.spark.ssl.X509TustManagerBypass
-
+import com.kinetica.spark.util.Constants.KINETICA_DEFAULT_JSON_FILE
 import javax.net.ssl.HttpsURLConnection
 import javax.net.ssl.KeyManager
 import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManager
-
 import org.apache.spark.SparkContext
 import org.apache.spark.util.LongAccumulator
 
-class LoaderParams extends Serializable with LazyLogging {
+class LoaderParams(@transient val sparkContext: SparkContext) extends Serializable with LazyLogging {
 
     @BeanProperty
     var timeoutMs: Int = 10000
@@ -123,8 +121,11 @@ class LoaderParams extends Serializable with LazyLogging {
     @BooleanBeanProperty
     var flattenSourceSchema: Boolean = false
 
+    @BeanProperty
+    var jsonSchemaFilename: String = KINETICA_DEFAULT_JSON_FILE
+
     def this(sc: SparkContext, params: Map[String, String]) = {
-        this()
+        this(sc)
 
         totalRows = sc.longAccumulator("TotalRows")
         convertedRows = sc.longAccumulator("ParsedRows")
@@ -153,6 +154,8 @@ class LoaderParams extends Serializable with LazyLogging {
         mapToSchema = params.get(KINETICA_MAPTOSCHEMA_PARAM).getOrElse("false").toBoolean
         truncateToSize = params.get(KINETICA_TRUNCATE_TO_SIZE).getOrElse("false").toBoolean
 
+        jsonSchemaFilename = params.get(CONNECTOR_JSON_SCHEMA_FILENAME_PARAM).getOrElse(KINETICA_DEFAULT_JSON_FILE)
+
         timeoutMs = params.get(KINETICA_TIMEOUT_PARAM).getOrElse("10000").toInt
         multiHead = params.get(KINETICA_MULTIHEAD_PARAM).getOrElse("false").toBoolean
 
@@ -171,7 +174,7 @@ class LoaderParams extends Serializable with LazyLogging {
         if( loaderPath ) {
             val tableParams: Array[String] = tablename.split("\\.")
             if (tableParams.length != 2) {
-                throw new Exception( "tablename is needed in the form [schema].[table] " + tablename)
+                throw new Exception( "tablename is needed in the form [schema].table " + tablename)
             }
             tablename = tableParams(1)
             schemaname = tableParams(0)
@@ -205,6 +208,7 @@ class LoaderParams extends Serializable with LazyLogging {
 
     private def connect(): GPUdb = {
         setupSSL()
+        require(kineticaURL != null, s"Parameter $KINETICA_URL_PARAM cannot be null")
         logger.info("Connecting to {} as <{}>", kineticaURL, kusername)
         val opts: GPUdbBase.Options = new GPUdbBase.Options()
         opts.setUsername(kusername)

@@ -36,6 +36,8 @@
         <maven-jar-plugin.version>3.1.0</maven-jar-plugin.version>
         <maven-assembly-plugin.version>2.2.1</maven-assembly-plugin.version>
         <git-commit-id-plugin.version>2.2.4</git-commit-id-plugin.version>
+        <jmockit.version>1.43</jmockit.version>
+        <play.json.version>2.6.10</play.json.version>
         <version.number>${git.commit.time}.${git.commit.id.abbrev}</version.number>
         <version.timestamp>${git.commit.time}</version.timestamp>
     </properties>
@@ -283,6 +285,16 @@
             <version>${joda-convert.version}</version>
         </dependency>
         <dependency>
+            <groupId>com.typesafe.play</groupId>
+            <artifactId>play-json_${scala.binary.version}</artifactId>
+            <version>${play.json.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.typesafe.play</groupId>
+            <artifactId>play-json-joda_${scala.binary.version}</artifactId>
+            <version>${play.json.version}</version>
+        </dependency>
+        <dependency>
             <groupId>com.typesafe.scala-logging</groupId>
             <artifactId>scala-logging_${scala.binary.version}</artifactId>
             <version>${scala-logging.version}</version>
@@ -302,6 +314,12 @@
             <groupId>com.simba.client.core.jdbc4</groupId>
             <artifactId>SCJDBC4Driver</artifactId>
             <version>${simba.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jmockit</groupId>
+            <artifactId>jmockit</artifactId>
+            <version>${jmockit.version}</version>
+            <scope>test</scope>
         </dependency>
 
 

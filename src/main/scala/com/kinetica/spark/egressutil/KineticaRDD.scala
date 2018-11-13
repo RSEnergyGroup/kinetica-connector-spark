@@ -111,10 +111,10 @@ private[kinetica] class KineticaRDD(
             } catch {
                 case e: Exception => logWarning("Exception closing connection", e)
             }
-            context.addTaskCompletionListener { context => close() }
             closed = true
         }
 
+        context.addTaskCompletionListener { _ => close() }
         myrows
     }
 
@@ -143,5 +143,11 @@ private[kinetica] class KineticaRDD(
         }
         log.info("External Table Query: " + baseQuery)
         baseQuery.toString()
+    }
+
+
+
+    override def finalize(): Unit = {
+
     }
 }

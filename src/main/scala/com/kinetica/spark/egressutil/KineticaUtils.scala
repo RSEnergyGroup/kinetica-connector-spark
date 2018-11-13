@@ -88,13 +88,16 @@ object KineticaUtils extends Logging {
         // retrieve it, you will get wrong result 199.99.
         // So it is needed to set precision and scale for Decimal based on JDBC metadata.
 
-        /*        
-        case DecimalType.Fixed(p, s) =>
+
+        case decimalType: DecimalType =>
             (rs: ResultSet, row: InternalRow, pos: Int) =>
-                val decimal =
-                    nullSafeConvert[java.math.BigDecimal](rs.getBigDecimal(pos + 1), d => Decimal(d, p, s))
-                row.update(pos, decimal)
-				*/
+                {
+                    val decimal =
+                        nullSafeConvert[java.math.BigDecimal](rs.getBigDecimal(pos + 1), d => Decimal(d, decimalType.precision, decimalType.scale))
+
+                    row.setDecimal(pos, decimal.asInstanceOf, decimalType.precision)
+                }
+
         case DoubleType =>
             (rs: ResultSet, row: InternalRow, pos: Int) =>
                 row.setDouble(pos, rs.getDouble(pos + 1))

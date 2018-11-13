@@ -37,6 +37,10 @@ object ConfigurationConstants {
     val KINETICA_ALTERTABLE_PARAM: String = "table.append_new_columns"
     val KINETICA_MAPTOSCHEMA_PARAM: String = "table.map_columns_by_name"
 
+    val KINETICA_USE_JSON_SCHEMA: String = "table.use_template_from_json"
+
+    val CONNECTOR_JSON_SCHEMA_FILENAME_PARAM: String = "source.json_schema_filename"
+
     val CONNECTOR_DATAPATH_PARAM: String = "source.data_path"
     val CONNECTOR_SQLFILE_PARAM: String = "source.sql_file"
     val CONNECTOR_DATAFORMAT_PARAM: String = "source.data_format"

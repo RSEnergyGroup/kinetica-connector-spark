@@ -2,9 +2,10 @@ package com.kinetica.spark.loader
 
 import java.io.Serializable
 
-import scala.beans.BeanProperty
+import scala.beans.{BeanProperty, BooleanBeanProperty}
 import scala.collection.JavaConversions.asScalaBuffer
 import com.kinetica.spark.util.ConfigurationConstants._
+import com.kinetica.spark.util.Constants._
 import com.typesafe.scalalogging.LazyLogging
 import com.kinetica.spark.LoaderParams
 import org.apache.spark.SparkContext
@@ -21,12 +22,15 @@ class LoaderConfiguration(sc:SparkContext, params: Map[String, String]) extends 
     @BeanProperty
     val dataFormat: String = params.get(CONNECTOR_DATAFORMAT_PARAM).getOrElse(null)
 
-    @BeanProperty
+    @BooleanBeanProperty
     val useTemplates: Boolean = params.get(KINETICA_USETEMPLATES_PARAM).getOrElse("false").toBoolean
+
+    @BooleanBeanProperty
+    val useJsonTemplate: Boolean = params.get(KINETICA_USE_JSON_SCHEMA).getOrElse("false").toBoolean
 
     @BeanProperty
     val partitionRows: Int = params.get(KINETICA_PARTROWS_PARAM).getOrElse("-1").toInt
 
-    @BeanProperty
+    @BooleanBeanProperty
     val csvHeader: Boolean = params.get(KINETICA_CSV_HEADER).getOrElse("false").toBoolean
 }
