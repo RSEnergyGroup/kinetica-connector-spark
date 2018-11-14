@@ -177,7 +177,7 @@ class LoaderParams(@transient val sparkContext: SparkContext) extends Serializab
                 throw new Exception( "tablename is needed in the form [schema].table " + tablename)
             }
             tablename = tableParams(1)
-            schemaname = tableParams(0)
+            schemaname = tableParams(0).stripSuffix("]").stripPrefix("[")
         }
 
         // SSL

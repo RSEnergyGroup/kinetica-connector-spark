@@ -120,7 +120,7 @@ class KineticaJsonSchemaHelper(val lp: LoaderParams) extends LazyLogging {
 
         val newTypeId = gpudb.createType(getCreateTypeRequest(kineticaSchemaMetadata)).getTypeId
 
-        val options = if (tableParams.length == 2) { Map(CreateTableRequest.Options.COLLECTION_NAME -> schemaName).asJava } else null
+        val options = Map(CreateTableRequest.Options.COLLECTION_NAME -> schemaName).asJava
 
         // does table already exist? drop if so
         if(gpudb.hasTable(table, options).getTableExists)
