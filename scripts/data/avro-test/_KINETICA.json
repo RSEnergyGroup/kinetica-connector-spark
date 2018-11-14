@@ -1,0 +1,43 @@
+{
+  "kinetica_schema" : {
+    "typeProperties" : {
+      "full_name" : [ "data", "nullable" ],
+      "test_int" : [ "data", "nullable" ],
+      "test_float" : [ "data", "nullable" ],
+      "bool_val" : [ "data", "int8", "nullable" ],
+      "event_dt" : [ "data", "nullable" ],
+      "event_ts" : [ "data", "nullable" ],
+      "test_long" : [ "data", "nullable" ],
+      "test_double" : [ "data", "nullable" ]
+    },
+    "typeSchema" : {
+      "type" : "record",
+      "name" : "type_name",
+      "fields" : [ {
+        "name" : "bool_val",
+        "type" : [ "int", "null" ]
+      }, {
+        "name" : "event_dt",
+        "type" : [ "long", "null" ]
+      }, {
+        "name" : "event_ts",
+        "type" : [ "long", "null" ]
+      }, {
+        "name" : "full_name",
+        "type" : [ "string", "null" ]
+      }, {
+        "name" : "test_double",
+        "type" : [ "double", "null" ]
+      }, {
+        "name" : "test_float",
+        "type" : [ "float", "null" ]
+      }, {
+        "name" : "test_int",
+        "type" : [ "int", "null" ]
+      }, {
+        "name" : "test_long",
+        "type" : [ "long", "null" ]
+      } ]
+    }
+  }
+}
