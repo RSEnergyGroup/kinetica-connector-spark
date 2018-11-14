@@ -50,7 +50,7 @@ class KineticaJsonSchemaHelper(val lp: LoaderParams) extends LazyLogging {
 
         val targetPath = if(path.getName.endsWith(".json")) path else new Path(path,jsonDataFileName)
 
-        val hdfs = FileSystem.get(lp.sparkContext.hadoopConfiguration)
+        val hdfs = getFileSystem(targetPath)
 
         hdfs.delete(new Path(s"$targetPath"), true)
 
@@ -72,7 +72,7 @@ class KineticaJsonSchemaHelper(val lp: LoaderParams) extends LazyLogging {
 
         val targetPath = if(path.getName.endsWith(".json")) path else new Path(path,jsonDataFileName)
 
-        val hdfs = FileSystem.get(lp.sparkContext.hadoopConfiguration)
+        val hdfs = getFileSystem(targetPath)
 
         if (hdfs.exists(targetPath) && hdfs.getFileStatus(targetPath).getLen > 0) {
 
@@ -84,6 +84,15 @@ class KineticaJsonSchemaHelper(val lp: LoaderParams) extends LazyLogging {
 
         } else {
             throw new Exception(s"Kinetica schema file at $targetPath could not be found")
+        }
+    }
+
+    private def getFileSystem(path: Path): FileSystem = {
+        if(path.isUriPathAbsolute)
+        {
+            FileSystem.get(path.toUri, lp.sparkContext.hadoopConfiguration)
+        } else {
+            FileSystem.get(lp.sparkContext.hadoopConfiguration)
         }
     }
 
@@ -104,7 +113,7 @@ class KineticaJsonSchemaHelper(val lp: LoaderParams) extends LazyLogging {
         val gpudb = lp.getGpudb()
         val tableParams: Array[String] = tableName.split("\\.")
 
-        var schemaName: String = if (tableParams.length == 2) { tableParams(0).stripPrefix("[").stripSuffix("]") } else null
+        var schemaName: String = if (tableParams.length == 2) { tableParams(0).stripPrefix("[").stripSuffix("]") } else lp.schemaname
         val table: String = if (tableParams.length == 2) { tableParams(1).stripPrefix("[").stripSuffix("]") } else tableName
 
         logger.info( "Creating new type for table <{}.{}>", schemaName, table)

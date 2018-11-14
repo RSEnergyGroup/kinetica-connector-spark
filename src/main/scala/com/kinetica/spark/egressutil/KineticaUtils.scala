@@ -92,10 +92,17 @@ object KineticaUtils extends Logging {
         case decimalType: DecimalType =>
             (rs: ResultSet, row: InternalRow, pos: Int) =>
                 {
-                    val decimal =
-                        nullSafeConvert[java.math.BigDecimal](rs.getBigDecimal(pos + 1), d => Decimal(d, decimalType.precision, decimalType.scale))
+                    val bigD = rs.getBigDecimal(pos + 1)
 
-                    row.setDecimal(pos, decimal.asInstanceOf, decimalType.precision)
+                    val decimal =
+                        nullSafeConvert2[java.math.BigDecimal, Decimal](bigD, d => Decimal(d, decimalType.precision, decimalType.scale))
+
+                    if(decimal.isDefined)
+                    {
+                        row.setDecimal(pos, decimal.get, decimalType.precision)
+                    } else if(bigD != null) {
+                        throw new Exception(s"unable to convert $bigD to Spark Decimal")
+                    }
                 }
 
         case DoubleType =>
@@ -198,6 +205,14 @@ object KineticaUtils extends Logging {
             null
         } else {
             f(input)
+        }
+    }
+
+    private def nullSafeConvert2[T, R](input: T, f: T => R): Option[R] = {
+        if (input == null) {
+            None
+        } else {
+            Some(f(input))
         }
     }
 }
