@@ -44,6 +44,10 @@ object ConfigurationConstants {
     val CONNECTOR_DATAPATH_PARAM: String = "source.data_path"
     val CONNECTOR_SQLFILE_PARAM: String = "source.sql_file"
     val CONNECTOR_DATAFORMAT_PARAM: String = "source.data_format"
+
+    val KINETICA_CONVERTLONGDATE_PARAM: String = "table.convert_long_to_date"
+    val KINETICA_CONVERTLONGDATEMILLISECONDS_PARAM: String = "table.convert_long_to_date_milliseconds"
+
     val KINETICA_CSV_HEADER: String = "source.csv_header"
 
 

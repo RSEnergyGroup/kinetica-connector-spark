@@ -33,4 +33,10 @@ class LoaderConfiguration(sc:SparkContext, params: Map[String, String]) extends 
 
     @BooleanBeanProperty
     val csvHeader: Boolean = params.get(KINETICA_CSV_HEADER).getOrElse("false").toBoolean
+
+    @BooleanBeanProperty
+    val convertLongToDate: Boolean = params.get(KINETICA_CONVERTLONGDATE_PARAM).getOrElse("true").toBoolean
+
+    @BooleanBeanProperty
+    val convertLongToDateMilliseconds: Boolean = params.get(KINETICA_CONVERTLONGDATEMILLISECONDS_PARAM).getOrElse("true").toBoolean
 }
