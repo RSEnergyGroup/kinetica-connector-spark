@@ -78,7 +78,7 @@ object KineticaJsonSchema extends LazyLogging {
             def reads(jv: JsValue): JsResult[Map[String, Seq[String]]] = {
                 JsSuccess(jv.as[scala.collection.immutable.Map[String, Array[String]]].map {
                     case (k, v) => {
-                        println(s"$k -> ${v.toSeq}")
+                        //println(s"$k -> ${v.toSeq}")
                         k -> v.toSeq
                     }
                 })

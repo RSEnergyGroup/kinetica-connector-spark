@@ -2,7 +2,7 @@ package com.kinetica.spark.util.json
 
 import java.io.BufferedOutputStream
 
-import com.gpudb.GPUdb
+import com.gpudb.{GPUdb, GPUdbBase}
 import com.gpudb.protocol.{CreateTableRequest, CreateTableResponse, CreateTypeRequest, ShowTableRequest}
 import com.kinetica.spark.LoaderParams
 import com.kinetica.spark.util.ConfigurationConstants._
@@ -120,10 +120,10 @@ class KineticaJsonSchemaHelper(val lp: LoaderParams) extends LazyLogging {
 
         val newTypeId = gpudb.createType(getCreateTypeRequest(kineticaSchemaMetadata)).getTypeId
 
-        val options = Map(CreateTableRequest.Options.COLLECTION_NAME -> schemaName).asJava
+        val options = GPUdbBase.options(CreateTableRequest.Options.COLLECTION_NAME, schemaName)
 
         // does table already exist? drop if so
-        if(gpudb.hasTable(table, options).getTableExists)
+        if(gpudb.hasTable(table, null).getTableExists)
         {
             gpudb.clearTable(table, gpudb.getUsername, null)
         }
