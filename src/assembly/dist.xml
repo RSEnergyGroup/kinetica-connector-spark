@@ -21,6 +21,10 @@
             <outputDirectory>target/</outputDirectory>
         </file>
         <file>
+            <source>${project.build.directory}/${project.build.finalName}.jar</source>
+            <outputDirectory>target/</outputDirectory>
+        </file>
+        <file>
             <source>${project.build.directory}/${project.build.finalName}-tests.jar</source>
             <outputDirectory>target/</outputDirectory>
         </file>

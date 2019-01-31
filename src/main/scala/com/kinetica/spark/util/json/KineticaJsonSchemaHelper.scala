@@ -9,6 +9,7 @@ import com.kinetica.spark.util.ConfigurationConstants._
 import com.kinetica.spark.util.Constants
 import com.kinetica.spark.util.json.KineticaJsonSchema.{KineticaSchemaMetadata, KineticaSchemaRoot}
 import com.typesafe.scalalogging.LazyLogging
+import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, FileUtil, Path}
 import org.apache.spark.sql.SparkSession
 
@@ -23,7 +24,7 @@ class KineticaJsonSchemaHelper(val lp: LoaderParams) extends LazyLogging {
 
     def this(parameters: scala.collection.immutable.Map[String, String], @transient sparkSession: SparkSession)
     {
-        this(new LoaderParams(sparkSession.sparkContext, parameters))
+        this(new LoaderParams(Some(sparkSession.sparkContext), parameters))
     }
 
     require(lp.kineticaURL != null, s"Parameter $KINETICA_URL_PARAM cannot be null")
@@ -90,14 +91,16 @@ class KineticaJsonSchemaHelper(val lp: LoaderParams) extends LazyLogging {
     }
 
     private def getFileSystem(path: Path): FileSystem = {
+
+        val hadoopConfig = Try(lp.sparkContext.get.hadoopConfiguration).getOrElse(new Configuration())
+
         if(path.isUriPathAbsolute)
         {
-            FileSystem.get(path.toUri, lp.sparkContext.hadoopConfiguration)
+            FileSystem.get(path.toUri, hadoopConfig)
         } else {
-            FileSystem.get(lp.sparkContext.hadoopConfiguration)
+            FileSystem.get(hadoopConfig)
         }
     }
-
 
     private def getCreateTypeRequest(kineticaSchemaMetadata: KineticaSchemaMetadata): CreateTypeRequest = {
         val newType = new CreateTypeRequest()
