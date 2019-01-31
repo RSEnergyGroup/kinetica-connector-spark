@@ -15,6 +15,7 @@ import org.apache.spark.sql.SparkSession
 import scala.collection.mutable.Map
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
+import scala.util.Try
 
 class KineticaJsonSchemaHelper(val lp: LoaderParams) extends LazyLogging {
 
@@ -37,9 +38,10 @@ class KineticaJsonSchemaHelper(val lp: LoaderParams) extends LazyLogging {
         st.setTableName(lp.tablename)
         st.setOptions(Map(ShowTableRequest.Options.GET_COLUMN_INFO -> ShowTableRequest.Options.TRUE))
         val table = gpudb.showTable(st)
+        val isReplicated = Try(table.getTableDescriptions.asScala(0).contains("REPLICATED")).getOrElse(false)
         val typeId = table.getTypeIds.asScala(0)
         val typeInfo = gpudb.showTypes(typeId,null,null)
-        KineticaJsonSchema.toKineticaSchemaMetadata(typeInfo)
+        KineticaJsonSchema.toKineticaSchemaMetadata(typeInfo, isReplicated)
     }
 
     def saveKineticaSchema(path: String, kineticaSchemaMetadata: KineticaSchemaMetadata): Unit = saveKineticaSchema(new Path(path), kineticaSchemaMetadata)
@@ -109,7 +111,6 @@ class KineticaJsonSchemaHelper(val lp: LoaderParams) extends LazyLogging {
 
     def createTableFromSchema(tableName: String, kineticaSchemaMetadata: KineticaSchemaMetadata) = {
 
-
         val gpudb = lp.getGpudb()
         val tableParams: Array[String] = tableName.split("\\.")
 
@@ -120,8 +121,6 @@ class KineticaJsonSchemaHelper(val lp: LoaderParams) extends LazyLogging {
 
         val newTypeId = gpudb.createType(getCreateTypeRequest(kineticaSchemaMetadata)).getTypeId
 
-        val options = GPUdbBase.options(CreateTableRequest.Options.COLLECTION_NAME, schemaName)
-
         // does table already exist? drop if so
         if(gpudb.hasTable(table, null).getTableExists)
         {
@@ -131,7 +130,18 @@ class KineticaJsonSchemaHelper(val lp: LoaderParams) extends LazyLogging {
         val createTable = new CreateTableRequest()
         createTable.setTableName(table)
         createTable.setTypeId(newTypeId)
-        createTable.setOptions(options)
+        createTable.setOptions(GPUdbBase.options(CreateTableRequest.Options.COLLECTION_NAME, schemaName))
+
+        if(kineticaSchemaMetadata.isReplicated)
+        {
+            createTable.setOptions(
+                GPUdbBase.options(
+                    CreateTableRequest.Options.COLLECTION_NAME, schemaName,
+                    CreateTableRequest.Options.IS_REPLICATED, CreateTableRequest.Options.TRUE))
+
+            // force replicated table to not use multihead
+            lp.setMultiHead(false)
+        }
 
         logger.info( "Creating table <{}.{}> for type()", schemaName, table, newTypeId)
         gpudb.createTable(createTable)

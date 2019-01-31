@@ -10,12 +10,10 @@ import scala.collection.JavaConversions.asScalaBuffer
 import scala.collection.JavaConversions.setAsJavaSet
 import scala.util.control.Breaks.break
 import scala.util.control.Breaks.breakable
-
 import org.apache.spark.sql.types.DataType
 import org.apache.spark.sql.types.DataTypes
 import org.apache.spark.sql.types.DecimalType
 import org.apache.spark.sql.types.StructType
-
 import com.gpudb.ColumnProperty
 import com.gpudb.GPUdb
 import com.gpudb.GPUdbBase
@@ -24,6 +22,9 @@ import com.gpudb.Type.Column
 import com.gpudb.protocol.{CreateTableRequest, CreateTableResponse, ShowTableRequest, ShowTableResponse}
 import com.kinetica.spark.util.json.KineticaJsonSchemaHelper
 import com.typesafe.scalalogging.LazyLogging
+import scala.collection.JavaConverters._
+
+import scala.util.Try
 
 class SchemaManager (conf: LoaderConfiguration) extends LazyLogging {
 
@@ -48,7 +49,10 @@ class SchemaManager (conf: LoaderConfiguration) extends LazyLogging {
             val jsonSchemaHelper = new KineticaJsonSchemaHelper(loaderConfig)
             val schema = jsonSchemaHelper.loadKineticaSchema(loaderConfig.dataPath).get
             jsonSchemaHelper.createTableFromSchema(schema)
-
+            if(schema.isReplicated)
+            {
+                loaderConfig.setTableReplicated(false)
+            }
             val response: ShowTableResponse = this.gpudb.showTable(this.tableName, null)
             this.setTypeFromResponse(response, 0)
         }
@@ -82,6 +86,7 @@ class SchemaManager (conf: LoaderConfiguration) extends LazyLogging {
                     "Table <%s> does not exist and <table.create = false>.",
                     loaderConfig.tablename))
         }
+
         loaderConfig.setType(this.getDestType)
         this.getColumnMap(sparkSchema)
     }
@@ -93,6 +98,9 @@ class SchemaManager (conf: LoaderConfiguration) extends LazyLogging {
         if( conf.tableReplicated ) {
             options = GPUdbBase.options(CreateTableRequest.Options.COLLECTION_NAME, this.schemaName,
                     CreateTableRequest.Options.IS_REPLICATED, CreateTableRequest.Options.TRUE)
+            // multihead not compatible with replication
+            conf.setMultiHead(false)
+            this.isReplicated = true
         } else {
             options = GPUdbBase.options(CreateTableRequest.Options.COLLECTION_NAME, this.schemaName)
         }
@@ -115,6 +123,8 @@ class SchemaManager (conf: LoaderConfiguration) extends LazyLogging {
         val tableDesc: List[String] = response.getTableDescriptions().get(index)
         if(tableDesc.contains("REPLICATED")) {
             this.isReplicated = tableDesc.contains("REPLICATED")
+            // multihead not compatible with replication
+            conf.setMultiHead(false)
         }
     }
 

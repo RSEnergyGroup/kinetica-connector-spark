@@ -16,7 +16,7 @@ object KineticaJsonSchema extends LazyLogging {
     // root class used to make json file compatible with inclusion in other metadata readers
     case class KineticaSchemaRoot(kinetica_schema: Option[KineticaSchemaMetadata] = None)
 
-    case class KineticaSchemaMetadata(typeProperties: Map[String, Seq[String]], typeSchema: Option[KineticaSchemaDefinition])
+    case class KineticaSchemaMetadata(typeProperties: Map[String, Seq[String]], typeSchema: Option[KineticaSchemaDefinition], isReplicated: Boolean = false)
 
     case class KineticaSchemaDefinition(recordType: String, name: String, fields: Seq[KineticaFieldDefinition])
 
@@ -85,9 +85,9 @@ object KineticaJsonSchema extends LazyLogging {
             }
         }
 
-        implicit val kineticaModelFormat = Json.format[KineticaSchemaMetadata]
+        implicit val kineticaModelFormat = Json.using[Json.WithDefaultValues].format[KineticaSchemaMetadata]
 
-        implicit val kineticaSchemaRootModel = Json.format[KineticaSchemaRoot]
+        implicit val kineticaSchemaRootModel = Json.using[Json.WithDefaultValues].format[KineticaSchemaRoot]
     }
 
 
@@ -119,10 +119,10 @@ object KineticaJsonSchema extends LazyLogging {
         Json.prettyPrint(Json.toJson[KineticaSchemaDefinition](schema.get))
     }
 
-    def toKineticaSchemaMetadata(typeInfo: ShowTypesResponse): KineticaSchemaMetadata = {
+    def toKineticaSchemaMetadata(typeInfo: ShowTypesResponse, isReplicated: Boolean = false): KineticaSchemaMetadata = {
         val props = typeInfo.getProperties.asScala(0).asScala.mapValues(_.toSeq)
         val typeDef = decodeKineticaSchemaDefinition(typeInfo.getTypeSchemas.asScala(0))
-        KineticaSchemaMetadata(props.toMap, typeDef)
+        KineticaSchemaMetadata(props.toMap, typeDef, isReplicated)
     }
 
 
