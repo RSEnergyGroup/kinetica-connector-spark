@@ -111,10 +111,10 @@ private[kinetica] class KineticaRDD(
             } catch {
                 case e: Exception => logWarning("Exception closing connection", e)
             }
-            context.addTaskCompletionListener { _ => close() }
             closed = true
         }
 
+        context.addTaskCompletionListener { _ => close() }
         myrows
     }
 
