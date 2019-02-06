@@ -28,8 +28,7 @@ import scala.collection.JavaConverters._
 import com.kinetica.spark.util.Constants._
 
     
-class LoaderParams extends Serializable with LazyLogging {
-//class LoaderParams(@transient val sparkContext: SparkContext) extends Serializable with LazyLogging {
+class LoaderParams(@transient val sparkContext: Option[SparkContext]) extends Serializable with LazyLogging {
 
     @BeanProperty
     var timeoutMs: Int = 10000
@@ -136,11 +135,8 @@ class LoaderParams extends Serializable with LazyLogging {
     @BeanProperty
     var jsonSchemaFilename: String = KINETICA_DEFAULT_JSON_FILE
 
-    // exposed for json schema helper which expect spark to exist
-    var sparkContext: Option[SparkContext] = None
-
     def this(sc: Option[SparkContext], params: Map[String, String]) = {
-        this()
+        this(sc)
 
         // Get a few long accumulators only if the context is given
         sc match {
@@ -148,7 +144,6 @@ class LoaderParams extends Serializable with LazyLogging {
                 totalRows = sc.longAccumulator("TotalRows")
                 convertedRows = sc.longAccumulator("ParsedRows")
                 failedConversion = sc.longAccumulator("UnparsedRows")
-                sparkContext = Some(sc)
             }
             case None => Unit
         }

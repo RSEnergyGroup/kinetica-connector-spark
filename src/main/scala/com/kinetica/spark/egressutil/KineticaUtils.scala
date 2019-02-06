@@ -133,9 +133,23 @@ object KineticaUtils extends Logging {
                 row.setShort(pos, rs.getShort(pos + 1))
 
         case StringType =>
-            (rs: ResultSet, row: InternalRow, pos: Int) =>
+            (rs: ResultSet, row: InternalRow, pos: Int) => {
+
+                val strVal = rs.getString(pos + 1)
+
+                // handle null values
+                if(strVal != null)
+                {
+                    val utf8StrVal = UTF8String.fromString(strVal)
+                    assert(strVal == utf8StrVal.toString)
+                    row.update(pos, utf8StrVal)
+                } else {
+                    row.update(pos, null)
+                }
+
                 // TODO(davies): use getBytes for better performance, if the encoding is UTF-8
-                row.update(pos, UTF8String.fromString(rs.getString(pos + 1)))
+                //row.update(pos, UTF8String.fromString(rs.getString(pos + 1)))
+            }
 
         case TimestampType =>
             (rs: ResultSet, row: InternalRow, pos: Int) =>
