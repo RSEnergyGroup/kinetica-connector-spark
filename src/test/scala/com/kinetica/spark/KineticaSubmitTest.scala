@@ -4,6 +4,7 @@ import org.scalatest.FunSuite
 import org.apache.spark.sql.SparkSession
 import com.typesafe.scalalogging.LazyLogging
 import com.databricks.spark.avro._
+import com.kinetica.spark.util.json.KineticaJsonSchemaHelper
 
 class KineticaSubmitTest extends FunSuite with LazyLogging {
 
@@ -38,6 +39,7 @@ class KineticaSubmitTest extends FunSuite with LazyLogging {
 
     // config options
     private final val KineticaOptions = Map(
+        "database.url" -> "http://localhost:9191",
         "database.jdbc_url" -> "jdbc:simba://localhost:9292",
         "database.username" -> "",
         "database.password" -> "",
@@ -75,6 +77,9 @@ class KineticaSubmitTest extends FunSuite with LazyLogging {
         val tableDF = spark.read.format("com.kinetica.spark")
             .options(KineticaOptions).load()
 
+        val schemaHelper = new KineticaJsonSchemaHelper(KineticaOptions, spark)
+        val schema = schemaHelper.getKineticaTableSchema()
+
         logger.info("Writing lines: {}", tableDF.count())
         tableDF.printSchema()
 
@@ -82,6 +87,8 @@ class KineticaSubmitTest extends FunSuite with LazyLogging {
             .mode("overwrite")
             .option("header", "true")
             .avro("output_avro")
+
+        schemaHelper.saveKineticaSchema("output_avro", schema)
     }
 
     test("Ingest CSV file") {

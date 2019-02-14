@@ -17,7 +17,7 @@ private[kinetica] object KineticaSchema {
      *
      * Returns spark sql type schema based for the given table.
      *
-     * @param url  Connection url to the netezzza database.
+     * @param url  Connection url to the kinetica database.
      * @param properties  connection properties.
      * @param table The table name of the desired table.
      * @return A StructType giving the table's spark sql schema.
@@ -80,7 +80,7 @@ private[kinetica] object KineticaSchema {
     }
 
     /**
-     * Maps Netezaa JDBC type to a spark sql type.
+     * Maps Kinetica JDBC type to a spark sql type.
      *
      * @param jdbcType - Jdbc type for the Kinetica column
      * @return The Spark SQL type corresponding to sqlType.

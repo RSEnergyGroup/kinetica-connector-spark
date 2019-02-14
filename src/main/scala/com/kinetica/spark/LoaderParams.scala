@@ -26,8 +26,8 @@ import org.apache.spark.util.LongAccumulator
 
 import scala.collection.JavaConverters._
 
-    
-class LoaderParams extends Serializable with LazyLogging {
+
+class LoaderParams(@transient val sparkContext: Option[SparkContext]) extends Serializable with LazyLogging {
 
     @BeanProperty
     var timeoutMs: Int = 10000
@@ -131,8 +131,11 @@ class LoaderParams extends Serializable with LazyLogging {
     @BooleanBeanProperty
     var flattenSourceSchema: Boolean = false
 
+    @BeanProperty
+    var jsonSchemaFilename: String = KINETICA_DEFAULT_JSON_FILE
+
     def this(sc: Option[SparkContext], params: Map[String, String]) = {
-        this()
+        this(sc)
 
         // Get a few long accumulators only if the context is given
         sc match {
@@ -179,6 +182,8 @@ class LoaderParams extends Serializable with LazyLogging {
 
         flattenSourceSchema = params.get(KINETICA_FLATTEN_SCHEMA).getOrElse("false").toBoolean
 
+        jsonSchemaFilename = params.getOrElse(CONNECTOR_JSON_SCHEMA_FILENAME_PARAM, KINETICA_DEFAULT_JSON_FILE)
+
         tablename = params.get(KINETICA_TABLENAME_PARAM).getOrElse(null)
         if(tablename == null) {
             throw new Exception( "Parameter is required: " + KINETICA_TABLENAME_PARAM)
@@ -195,8 +200,8 @@ class LoaderParams extends Serializable with LazyLogging {
             }
             // A collection name IS given
             if (tableParams.length == 2) {
-                schemaname = tableParams( 0 )
-                tablename = tableParams( 1 )
+                schemaname = tableParams( 0 ).stripSuffix("]").stripPrefix("[")
+                tablename = tableParams( 1 ).stripSuffix("]").stripPrefix("[")
             }
         }
         // if( loaderPath ) {

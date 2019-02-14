@@ -43,6 +43,14 @@ object ConfigurationConstants {
     val CONNECTOR_DATAFORMAT_PARAM: String = "source.data_format"
     val KINETICA_CSV_HEADER: String = "source.csv_header"
 
+    // support for json-based templating
+    val KINETICA_DEFAULT_JSON_FILE = "_KINETICA.json"
+    val KINETICA_USE_JSON_SCHEMA: String = "table.use_template_from_json"
+    val CONNECTOR_JSON_SCHEMA_FILENAME_PARAM: String = "source.json_schema_filename"
+
+    // support for avro long timestamp to date
+    val KINETICA_CONVERTLONGDATE_PARAM: String = "table.convert_avro_timestamp_long_to_date"
+    val KINETICA_CONVERTLONGDATEMILLISECONDS_PARAM: String = "table.convert_avro_timestamp_long_to_date_milliseconds"
 
     val ACCUMULATOR_NAME: String = "acc_name"
 

@@ -2,6 +2,7 @@ package com.kinetica.spark.loader
 
 import java.time.Duration
 import java.time.Instant
+import java.time.format.{DateTimeFormatter, FormatStyle}
 import java.util.Date
 
 //remove if not needed
@@ -90,6 +91,9 @@ class KineticaLoaderFunction (
         if (colProps.contains("timestamp")) {
             outValue = convertFromDate(srcType, inValue)
         }
+        else if(colProps.contains("date") && (loaderConfig.convertLongToDate || loaderConfig.convertLongToDateMilliseconds)) {
+            outValue = convertLongToDate(srcType, inValue)
+        }
         else if (destType == srcType) {
             // fast path
             outValue = inValue
@@ -149,6 +153,27 @@ class KineticaLoaderFunction (
         }
 
         dateVal
+    }
+
+    // support conversion of avro timestamp (long) to date
+    private def convertLongToDate(srcType: Class[_], inObject: Any): String = {
+
+        var result: String = null
+
+        if(classOf[java.lang.Long].isAssignableFrom(srcType))
+        {
+            val inLong = inObject.asInstanceOf[java.lang.Long]
+
+            val date = if(loaderConfig.convertLongToDateMilliseconds) {
+                new java.util.Date(inLong)
+            } else {
+                new java.util.Date(inLong*1000)
+            }
+
+            result = new java.text.SimpleDateFormat("yyyy-MM-dd").format(date)
+        }
+
+        result
     }
 
     private def convertFromNumber(destType: Class[_], inNumber: Number): Number = {

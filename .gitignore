@@ -17,6 +17,7 @@ spark-solr.ipr
 spark-solr.iws
 
 /.idea/
+*.iml
 
 # spark runtime file
 /metastore_db/

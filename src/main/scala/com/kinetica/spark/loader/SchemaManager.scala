@@ -9,6 +9,7 @@ import com.gpudb.ColumnProperty
 import com.gpudb.GPUdb
 import com.gpudb.GPUdbBase
 import com.gpudb.Type
+import com.kinetica.spark.util.json.KineticaJsonSchemaHelper
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.spark.sql.types.DataType
 import org.apache.spark.sql.types.DataTypes
@@ -27,7 +28,7 @@ class SchemaManager (conf: LoaderConfiguration) extends LazyLogging {
     private val tableName: String = conf.tablename
     private val schemaName: String = conf.schemaname
     private val useTemplates: Boolean = conf.useTemplates
-
+    private val useJsonTemplate: Boolean = conf.useJsonTemplate
     private var isReplicated: Boolean = false
 
     @BeanProperty
@@ -37,7 +38,20 @@ class SchemaManager (conf: LoaderConfiguration) extends LazyLogging {
 
     def setupSchema(loaderConfig: LoaderConfiguration, sparkSchema: StructType): java.util.HashMap[Integer, Integer] = {
 
-        if(this.useTemplates) {
+        if(this.useJsonTemplate) {
+            // lookup schema from json template
+            require(loaderConfig.dataPath != null, "Use of Json Template requires a data path")
+            val jsonSchemaHelper = new KineticaJsonSchemaHelper(loaderConfig)
+            val schema = jsonSchemaHelper.loadKineticaSchema(loaderConfig.dataPath).get
+            jsonSchemaHelper.createTableFromSchema(schema)
+            if(schema.isReplicated)
+            {
+                loaderConfig.setTableReplicated(false)
+            }
+            val response: ShowTableResponse = this.gpudb.showTable(this.tableName, null)
+            this.setTypeFromResponse(response, 0)
+        }
+        else if(this.useTemplates) {
             // lookup schema from template
             this.resolveTemplate()
             if (loaderConfig.hasTable()) {
@@ -89,6 +103,9 @@ class SchemaManager (conf: LoaderConfiguration) extends LazyLogging {
         if( conf.tableReplicated ) {
             options = GPUdbBase.options(CreateTableRequest.Options.COLLECTION_NAME, this.schemaName,
                     CreateTableRequest.Options.IS_REPLICATED, CreateTableRequest.Options.TRUE)
+            // multihead ingest not compatible with replication
+            conf.setMultiHead(false)
+            this.isReplicated = true
         } else {
             options = GPUdbBase.options(CreateTableRequest.Options.COLLECTION_NAME, this.schemaName)
         }
@@ -111,6 +128,8 @@ class SchemaManager (conf: LoaderConfiguration) extends LazyLogging {
         val tableDesc: java.util.List[String] = response.getTableDescriptions.get(index)
         if(tableDesc.contains("REPLICATED")) {
             this.isReplicated = tableDesc.contains("REPLICATED")
+            // multihead not compatible with replication
+            conf.setMultiHead(false)
         }
     }
 
@@ -177,8 +196,9 @@ class SchemaManager (conf: LoaderConfiguration) extends LazyLogging {
 
                 val sourceDT: Class[_] = sourceCol.getType
                 val destDT: Class[_] = destCol.getType
+                val isDate: Boolean = destCol.getProperties.contains("date")
 
-                if (!validConversion(sourceDT, destDT)) {
+                if (!validConversion(sourceDT, destDT, isDate)) {
                     throw new Exception(
                         String.format("Could not convert datatype for column <%s>: %s -> %s",
                             sourceCol.getName, sourceDT.getName, destDT.getName))
@@ -237,6 +257,9 @@ class SchemaManager (conf: LoaderConfiguration) extends LazyLogging {
 
             if (dataType == DataTypes.StringType) {
                 classType = classOf[String]
+            } else if (dataType == DataTypes.DateType) {
+                classType = classOf[java.lang.Long]
+                colProps.add(ColumnProperty.DATETIME)
             } else if (dataType == DataTypes.TimestampType) {
                 classType = classOf[java.lang.Long]
                 colProps.add(ColumnProperty.TIMESTAMP)
@@ -279,7 +302,7 @@ class SchemaManager (conf: LoaderConfiguration) extends LazyLogging {
         new Type(columns)
     }
 
-    private def validConversion(sourceDT: Class[_], destDT: Class[_]): Boolean = {
+    private def validConversion(sourceDT: Class[_], destDT: Class[_], isDate: Boolean = false): Boolean = {
         if (destDT == sourceDT) {
             // same types
             true
@@ -294,6 +317,8 @@ class SchemaManager (conf: LoaderConfiguration) extends LazyLogging {
             true
         } else if (classOf[java.util.Date].isAssignableFrom(sourceDT) && destDT == classOf[java.lang.Long]) {
             // timestamp conversion
+            true
+        } else if(isDate  && sourceDT == classOf[java.lang.Long] && destDT == classOf[java.lang.String]) {
             true
         } else {
           false

@@ -1,8 +1,9 @@
 package com.kinetica.spark
 
+import com.kinetica.spark.util.json.KineticaJsonSchemaHelper
 import org.apache.spark.SparkConf
-import org.apache.spark.sql.{ SaveMode, SparkSession }
-import org.apache.spark.sql.functions.{ column, count, sum, when }
+import org.apache.spark.sql.{SaveMode, SparkSession}
+import org.apache.spark.sql.functions.{column, count, sum, when}
 
 object KineticaEgressTest extends App {
 
@@ -34,8 +35,12 @@ object KineticaEgressTest extends App {
     )
         
     val df = sqlContext.read.format("com.kinetica.spark").options(kineticaOptions).load().filter("Month = 7")
-    
+
+    val schemaHelper = new KineticaJsonSchemaHelper(kineticaOptions, spark)
+    val schema = schemaHelper.getKineticaTableSchema()
+
     df.write.format("csv").mode("overwrite").save("2008.july")
+    schemaHelper.saveKineticaSchema("2008.july", schema)
 
     df.
         groupBy("DayOfWeek").
