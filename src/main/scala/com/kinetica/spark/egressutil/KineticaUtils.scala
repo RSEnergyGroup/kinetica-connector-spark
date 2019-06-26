@@ -2,7 +2,7 @@ package com.kinetica.spark.egressutil
 
 // MUCH OF THIS CODE IS LIFTED FROM SPARK CODEBASE - SRB
 
-import java.sql.ResultSet
+import java.sql.{ResultSet, Time, Timestamp}
 
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.Row
@@ -28,17 +28,19 @@ import org.apache.spark.sql.types.StringType
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.types.TimestampType
 import org.apache.spark.unsafe.types.UTF8String
+import com.gpudb.GPUdb
+import com.gpudb.Record
+import com.gpudb.protocol.GetRecordsByColumnRequest
+import com.gpudb.protocol.GetRecordsByColumnResponse
+import com.gpudb.protocol.ShowTableRequest
+import com.gpudb.protocol.ShowTableResponse
+import java.text.SimpleDateFormat
 
-import com.gpudb.GPUdb;
-import com.gpudb.Record;
-import com.gpudb.protocol.GetRecordsByColumnRequest;
-import com.gpudb.protocol.GetRecordsByColumnResponse;
-import com.gpudb.protocol.ShowTableRequest;
-import com.gpudb.protocol.ShowTableResponse;
+import com.typesafe.scalalogging.LazyLogging
 
-import java.text.SimpleDateFormat;
+import scala.util.Try;
 
-object KineticaUtils extends Logging {
+object KineticaUtils extends LazyLogging {
 
     private type JDBCValueGetter = (ResultSet, Record, InternalRow, Int) => Unit
 
@@ -205,12 +207,26 @@ object KineticaUtils extends Logging {
 
         case TimestampType =>
             (rs: ResultSet, gr: Record, row: InternalRow, pos: Int) =>
-                val t : java.sql.Timestamp =  if (gr.getLong(pos) != null) new java.sql.Timestamp(gr.getLong(pos)) else null
-                if (t != null) {
-                    row.setLong(pos, DateTimeUtils.fromJavaTimestamp(t))
-                } else {
-                    row.update(pos, null)
+
+                // timestamp can come from gpudb api as a string
+                val strValue = Try(gr.getString(pos)).toOption
+                val longValue = Try(gr.getLong(pos)).toOption
+
+                longValue match {
+                    case Some(l) =>
+                        row.setLong(pos, DateTimeUtils.fromJavaTimestamp(new java.sql.Timestamp(l)))
+                    case _ => strValue match {
+                        case None => row.update(pos, null)
+                        case Some(tsString) =>
+                            throw new Exception(s"Got a string when expecting a timestamp at position $pos => $tsString")
+                    }
                 }
+//                val t : java.sql.Timestamp =  if (gr.getLong(pos) != null) new java.sql.Timestamp(gr.getLong(pos)) else null
+//                if (t != null) {
+//                    row.setLong(pos, DateTimeUtils.fromJavaTimestamp(t))
+//                } else {
+//                    row.update(pos, null)
+//                }
 
         case BinaryType =>
             (rs: ResultSet, gr: Record, row: InternalRow, pos: Int) =>
