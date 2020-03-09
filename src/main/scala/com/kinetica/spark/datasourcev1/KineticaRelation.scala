@@ -51,7 +51,7 @@ class KineticaRelation(
     // Parse the user given parameters
     val properties = new Properties();
     parameters.foreach { case (k, v) => properties.setProperty(k, v) };
-    val conf: LoaderParams = new LoaderParams( Option.apply(sparkSession.sparkContext), parameters);
+    val conf: LoaderParams = new LoaderParams(Option(sparkSession.sparkContext), parameters);
 
     // Save some user given parameters for use
     val url = conf.getJdbcURL;

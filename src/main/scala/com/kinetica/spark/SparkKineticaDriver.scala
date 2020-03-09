@@ -5,6 +5,7 @@ import java.nio.file.Path
 import java.nio.file.Paths
 
 import com.kinetica.spark.loader.LoaderConfiguration
+import com.kinetica.spark.util.ConfigurationConstants._
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.configuration.ConfigurationException
 import org.apache.commons.configuration.PropertiesConfiguration
@@ -47,50 +48,66 @@ object SparkKineticaDriver extends LazyLogging {
 
 import com.kinetica.spark.util.ConfigurationConstants
 
-class SparkKineticaDriver(args: Array[String]) extends LazyLogging {
+class SparkKineticaDriver(val params: mutable.Map[String, String] = scala.collection.mutable.Map[String, String]()) extends LazyLogging {
 
     logger.debug(" ********** SparkKineticaDriver class main constructor ********** ")
 
-    private val propertyConf: PropertiesConfiguration = parseArgs(args)
 
-    var params: mutable.Map[String, String] = scala.collection.mutable.Map[String, String]()
-
-    val propIt : java.util.Iterator[_] = propertyConf.getKeys()
-
-    while (propIt.hasNext) {
-        val key: String  = propIt.next.toString
-        val param: String = propertyConf.getString(key)
-        logger.debug("config: {} = {}", key, param)
-        params += (key -> param)
+    def this(args: Array[String]) {
+        this()
+        initArgs(args)
     }
+
+    private def initArgs(args: Array[String]): Unit = {
+        // if args were provided, use them to create the parameter map
+        if(args != null && args.nonEmpty) {
+            val propertyConf: PropertiesConfiguration = parseArgs(args)
+
+            val propIt : java.util.Iterator[_] = propertyConf.getKeys()
+
+            while (propIt.hasNext) {
+                val key: String  = propIt.next.toString
+                val param: String = propertyConf.getString(key)
+                logger.debug("config: {} = {}", key, param)
+                params(key) = param
+            }
+        }
+    }
+
+    var propFile: File = _
 
     // Dataframe is ready. Lets put a flag in the params so the datasource API can take
     // one of the 2 different paths from 2 original connectors.
-    params += (ConfigurationConstants.LOADERCODEPATH -> "true")
+    params(ConfigurationConstants.LOADERCODEPATH) = "true"
 
-    val immutableParams: Map[String, String] = params.map(kv => (kv._1,kv._2)).toMap
     var loaderConfig : LoaderConfiguration = _
+
+    def init(sess: SparkSession): Unit = {
+        loaderConfig = new LoaderConfiguration(sess.sparkContext,  params.toMap)
+    }
 
     def start(sess: SparkSession): Unit = {
 
-        loaderConfig = new LoaderConfiguration(sess.sparkContext,  immutableParams)
+        init(sess)
 
         logger.info("Starting job: {}", sess.conf.get("spark.app.name"))
         val inputDs: DataFrame = getDataset(sess)
 
         logger.info("Starting Kinetica write...")
-        if ( loaderConfig.datasourceVersion == "v1" ) {
-            logger.info("Using the Spark DataSource v1 API for loading")
-            inputDs.write.format("com.kinetica.spark.datasourcev1").options(params).save()
-        }
-        else if ( loaderConfig.datasourceVersion == "v2" ) {
-            logger.info("Using the Spark DataSource v2 API for loading")
-            inputDs.write.format("com.kinetica.spark.datasourcev2").options(params).save()
-        }
-        else {
-            val errorMsg: String = s"Must provide a valid value for parameter '${ConfigurationConstants.SPARK_DATASOURCE_VERSION}', if given.  Accepted values: 'v1', 'v2'; given '${loaderConfig.datasourceVersion}'"
-            logger.error( errorMsg )
-            throw new Exception( errorMsg )
+        loaderConfig.datasourceVersion match {
+            case SPARK_DATASOURCE_V1 => {
+                logger.info("Using the Spark DataSource v1 API for loading")
+                inputDs.write.format("com.kinetica.spark.datasourcev1").options(params).save()
+            }
+            case SPARK_DATASOURCE_V2 => {
+                logger.info("Using the Spark DataSource v2 API for loading")
+                inputDs.write.format("com.kinetica.spark.datasourcev2").options(params).save()
+            }
+            case _ => {
+                val errorMsg: String = s"Must provide a valid value for parameter '${ConfigurationConstants.SPARK_DATASOURCE_VERSION}', if given.  Accepted values: 'v1', 'v2'; given '${loaderConfig.datasourceVersion}'"
+                logger.error( errorMsg )
+                throw new Exception( errorMsg )
+            }
         }
     }
 
@@ -101,9 +118,9 @@ class SparkKineticaDriver(args: Array[String]) extends LazyLogging {
         var dataFormat: String = loaderConfig.dataFormat
 
         var inputDs: DataFrame = null
-        val parentPath: Path = Paths.get(this.propertyConf.getFile.getParent)
 
         if (sqlFileName != null) {
+            val parentPath: Path = Paths.get(propFile.getParent)
             val sqlFile: File = parentPath.resolve(sqlFileName).toFile
             val sql: String = FileUtils.readFileToString(sqlFile)
             logger.info("Executing SQL: {}", sql)
@@ -152,7 +169,7 @@ class SparkKineticaDriver(args: Array[String]) extends LazyLogging {
     private def parseArgs(args: Array[String]): PropertiesConfiguration = {
         val argList: java.util.List[String] = new java.util.ArrayList[String](java.util.Arrays.asList(args: _*))
         val propPath: String = argList.remove(0)
-        val propFile: File = new File(propPath)
+        propFile = new File(propPath)
         logger.info("Reading properties from file: {}", propFile)
 
         val conf = new PropertiesConfiguration(propPath)

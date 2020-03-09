@@ -31,3 +31,8 @@ class DefaultSource
     }
 
 }
+
+// object used for magic string elimination
+object DefaultSource extends DefaultSource {
+    val packageName: String = this.getClass.getPackage.getName
+}

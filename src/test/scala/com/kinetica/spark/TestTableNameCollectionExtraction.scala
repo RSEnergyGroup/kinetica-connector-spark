@@ -61,7 +61,7 @@ trait TableNameCollectionExtractionBehavior
 
             // Check that the table did not get put in a collection
             val collectionName = get_table_collection_name( dstTableName );
-            assert ( !collectionName.isDefined,
+            assert ( collectionName.isEmpty,
                      s"""Table '$dstTableName' should not be in any collection;
                   | found to be in '${collectionName.getOrElse("None")}'
                   |""".stripMargin.replaceAll("\n", "") );
@@ -102,7 +102,7 @@ trait TableNameCollectionExtractionBehavior
 
             // Check that the table did not get put in a collection
             val collectionName = get_table_collection_name( dstTableName );
-            assert ( !collectionName.isDefined,
+            assert ( collectionName.isEmpty,
                      s"""Table '$dstTableName' should not be in any collection;
                   | found to be in '${collectionName.getOrElse("None")}'
                   |""".stripMargin.replaceAll("\n", "") );
@@ -143,7 +143,7 @@ trait TableNameCollectionExtractionBehavior
 
             // Check that the table did not get put in a collection
             val collectionName = get_table_collection_name( dstTableName );
-            assert ( !collectionName.isDefined,
+            assert ( collectionName.isEmpty,
                      s"""Table '$dstTableName' should not be in any collection;
                   | found to be in '${collectionName.getOrElse("None")}'
                   |""".stripMargin.replaceAll("\n", "") );

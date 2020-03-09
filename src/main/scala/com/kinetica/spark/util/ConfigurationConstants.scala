@@ -1,9 +1,15 @@
 package com.kinetica.spark.util;
 
+
 object ConfigurationConstants {
 
     val SPARK_DATASOURCE_VERSION: String = "spark.datasource_api_version";
-    
+    val SPARK_DATASOURCE_V1: String = "v1";
+    val SPARK_DATASOURCE_V2: String = "v2";
+    val SPARK_DATASOURCE_DEFAULT_FORMAT: String = (com.kinetica.spark.DefaultSource.packageName)
+    val SPARK_DATASOURCE_V1_FORMAT: String = (com.kinetica.spark.datasourcev1.DefaultSource.packageName)
+    val SPARK_DATASOURCE_V2_FORMAT: String = (com.kinetica.spark.datasourcev2.DefaultSource.packageName)
+
     val KINETICA_URL_PARAM: String = "database.url";
     val KINETICA_PRIMARY_URL_PARAM: String = "database.primary_url";
     val KINETICA_JDBCURL_PARAM: String = "database.jdbc_url";
@@ -45,6 +51,14 @@ object ConfigurationConstants {
     val KINETICA_USETEMPLATES_PARAM: String = "table.use_templates";
     val KINETICA_ALTERTABLE_PARAM: String = "table.append_new_columns";
     val KINETICA_MAPTOSCHEMA_PARAM: String = "table.map_columns_by_name";
+
+    // support for json-based templating
+    val KINETICA_TEMPLATETYPE_PARAM: String = "source.template_type";
+    val TEMPLATE_TYPE_SQL: String = "sql";
+    val TEMPLATE_TYPE_JSON: String = "json";
+    val DEFAULT_TEMPLATE_TYPE: String = TEMPLATE_TYPE_SQL;
+    val DEFAULT_JSON_SCHEMA_FILE: String = "_KINETICA.json";
+    val CONNECTOR_JSON_SCHEMA_FILENAME_PARAM: String = "source.json_schema_filename";
 
     val CONNECTOR_DATAPATH_PARAM: String = "source.data_path";
     val CONNECTOR_SQLFILE_PARAM: String = "source.sql_file";

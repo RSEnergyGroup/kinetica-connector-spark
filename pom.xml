@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.kinetica</groupId>
     <artifactId>kinetica-spark</artifactId>
-    <version>7.0.6.1</version>
+    <version>7.0.6.2</version>
     <packaging>jar</packaging>
     <name>spark-kinetica</name>
     <description>Tools for reading/writing data from/to Spark into Kinetica</description>
@@ -38,6 +38,11 @@
         <git-commit-id-plugin.version>2.2.4</git-commit-id-plugin.version>
         <version.number>${git.commit.time}.${git.commit.id.abbrev}</version.number>
         <version.timestamp>${git.commit.time}</version.timestamp>
+        <play.json.version>2.7.4</play.json.version>
+        <!--
+            play-json uses a newer version of jackson than spark
+            specified old version here to ensure dependency tree
+        -->
         <!-- Default parameter values for ScalaTest -->
         <kurl>""</kurl>
         <kusername>""</kusername>
@@ -325,6 +330,16 @@
                                     </excludes>
                                 </filter>
                             </filters>
+                            <artifactSet>
+                                <excludes>
+                                    <exclude>scala:*</exclude>
+                                    <exclude>org.scala:*</exclude>
+                                    <exclude>org.scala-lang:*</exclude>
+                                    <exclude>org.apache.spark:*</exclude>
+                                    <exclude>org.slf4j:*</exclude>
+                                    <exclude>junit:junit</exclude>
+                                </excludes>
+                            </artifactSet>
                             <relocations>
                                 <relocation>
                                     <pattern>com.typesafe.scalalogging</pattern>
@@ -337,6 +352,7 @@
                             </relocations>
                             <shadedArtifactAttached>true</shadedArtifactAttached>
                             <shadedClassifierName>jar-with-dependencies</shadedClassifierName>
+                            <minimizeJar>false</minimizeJar>
                         </configuration>
                     </execution>
                 </executions>
@@ -350,6 +366,12 @@
                     <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
                     <junitxml>.</junitxml>
                     <filereports>WDF TestSuite.txt</filereports>
+                    <environmentVariables>
+                        <SPARK_MASTER_IP>127.0.0.1</SPARK_MASTER_IP>
+                        <SPARK_LOCAL_IP>127.0.0.1</SPARK_LOCAL_IP>
+                        <SPARK.MASTER.IP>127.0.0.1</SPARK.MASTER.IP>
+                        <SPARK.LOCAL.IP>127.0.0.1</SPARK.LOCAL.IP>
+                    </environmentVariables>
                     <argLine>-Durl=${kurl} -Dusername=${kusername} -Dpassword=${kpassword} -DprimaryURL=${kprimaryURL} -DhttpdTrustStorePath=${khttpdTrustStorePath} -DhttpdTrustStorePassword=${khttpdTrustStorePassword}</argLine>
                 </configuration>
                 <executions>
@@ -400,6 +422,26 @@
             <version>${kinetica-jdbc.version}</version>
         </dependency>
 
+		<!-- play-json library for json serialization -->
+        <dependency>
+            <groupId>com.typesafe.play</groupId>
+            <artifactId>play-json_${scala.binary.version}</artifactId>
+            <version>${play.json.version}</version>
+			<exclusions>
+			<exclusion>
+			  <groupId>com.fasterxml.jackson.core</groupId>
+			  <artifactId>*</artifactId>
+			</exclusion>
+			<exclusion>
+			  <groupId>com.fasterxml.jackson.datatype</groupId>
+			  <artifactId>*</artifactId>
+			</exclusion>
+			<exclusion>
+			  <groupId>com.fasterxml.jackson.module</groupId>
+			  <artifactId>*</artifactId>
+			</exclusion>
+		  </exclusions>
+        </dependency>
 
         <!-- provided scope -->
         <dependency>

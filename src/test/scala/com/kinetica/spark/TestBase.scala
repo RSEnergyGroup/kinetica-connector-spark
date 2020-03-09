@@ -1,36 +1,32 @@
 package com.kinetica.spark;
 
-import com.gpudb.GPUdb;
-import com.gpudb.GPUdbBase;
-import com.gpudb.ColumnProperty;
-import com.gpudb.Record;
-import com.gpudb.Type;
-import com.gpudb.protocol.ClearTableRequest;
-import com.gpudb.protocol.CreateTableRequest;
-import com.gpudb.protocol.DeleteRecordsRequest;
-import com.gpudb.protocol.GetRecordsByColumnRequest;
-import com.gpudb.protocol.GetRecordsByColumnResponse;
-import com.gpudb.protocol.ShowTableResponse;
+import com.gpudb.GPUdb
+import com.gpudb.GPUdbBase
+import com.gpudb.ColumnProperty
+import com.gpudb.Record
+import com.gpudb.Type
+import com.gpudb.protocol.ClearTableRequest
+import com.gpudb.protocol.CreateTableRequest
+import com.gpudb.protocol.DeleteRecordsRequest
+import com.gpudb.protocol.GetRecordsByColumnRequest
+import com.gpudb.protocol.GetRecordsByColumnResponse
+import com.gpudb.protocol.ShowTableResponse
+import com.typesafe.scalalogging.LazyLogging
+import java.io.File
+import java.net.URL
+import java.time.LocalDateTime
+import java.time.ZoneId
 
-import com.typesafe.scalalogging.LazyLogging;
+import com.kinetica.spark.util.ConfigurationConstants
+import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.Row
+import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.types.{IntegerType, StringType, StructField, StructType}
+import org.scalatest.{Args, BeforeAndAfterAll, BeforeAndAfterEach, FunSuite, Status, Suite}
 
-import java.io.File;
-import java.net.URL;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-
-import org.apache.spark.sql.DataFrame;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.types.{IntegerType, StringType, StructField, StructType};
-import org.scalatest.FunSuite;
-import org.scalatest.BeforeAndAfterAll;
-import org.scalatest.BeforeAndAfterEach;
-import org.scalatest.Suite;
-
-import scala.collection.JavaConversions._;
-import scala.collection.JavaConverters._;
-import scala.collection.{mutable, immutable};
+import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
+import scala.collection.{immutable, mutable}
 import scala.util.Random;
 
 
@@ -52,9 +48,14 @@ trait SparkConnectorTestFixture
             with LazyLogging { this: Suite =>
 
     // Names of the Kinetica Spark connector packages
-    val m_default_package = "com.kinetica.spark";
-    val m_v1_package      = "com.kinetica.spark.datasourcev1";
-    val m_v2_package      = "com.kinetica.spark.datasourcev2";
+    val m_default_package = ConfigurationConstants.SPARK_DATASOURCE_DEFAULT_FORMAT;
+    val m_v1_package      = ConfigurationConstants.SPARK_DATASOURCE_V1_FORMAT;
+    val m_v2_package      = ConfigurationConstants.SPARK_DATASOURCE_V2_FORMAT;
+
+    // does the package name come from the package object successfully?
+    assertResult(m_default_package)("com.kinetica.spark")
+    assertResult(m_v1_package)("com.kinetica.spark.datasourcev1")
+    assertResult(m_v2_package)("com.kinetica.spark.datasourcev2")
 
     // Descriptions of the Kinetica Spark connector packages
     val m_default_package_descr = "[Default Package]";
@@ -534,9 +535,14 @@ trait SparkConnectorTestFixture
     def createKineticaTableWithGivenColumns( tableName: String,
                                              collectionName: Option[String],
                                              columns: mutable.ListBuffer[Type.Column],
-                                             numRows: Int ) : Unit = {
+                                             numRows: Int,
+                                             isReplicated: Boolean = false) : Unit = {
         // Create a type object from the columns
         val type_ = new Type( columns.toList.asJava );
+
+        // Set Replication
+        m_createTableInCollectionOptions(CreateTableRequest.Options.IS_REPLICATED) =
+          if(isReplicated) CreateTableRequest.Options.TRUE else CreateTableRequest.Options.FALSE
 
         // Set the collection name option for table creation
         collectionName match {
@@ -683,6 +689,17 @@ trait SparkConnectorTestFixture
     }
 
 
+    // extend test method to automatically log the test name instead of repeating it
+    abstract override def runTest(testName: String, args: Args): Status = {
+        logger.info(testName.replaceAll("\\s"," "))
+        super.runTest(testName, args)
+    }
+
+    // helper function to generate a valid table name from parameters
+    def generateTableName(package_to_test: String, package_description: String, table_prefix: String, table_suffix: String = ""): String = {
+        val replacedDescription = "\\s".r.replaceAllIn(package_description.stripPrefix("[").stripSuffix("]"), "_")
+        s"[$package_to_test].${table_prefix}_${replacedDescription}$table_suffix"
+    }
 
 }   // end trait SparkConnectorTestFixture
 
@@ -705,7 +722,7 @@ class SparkConnectorTestBase
     override def beforeEach() {
         // Obtain the spark session
         m_sparkSession = SparkSession.builder().appName("Kinetica Spark Connector Tests")
-            .master("local")
+            .master("local[*]")
             .config("", "")
             .getOrCreate();
     }
@@ -720,6 +737,8 @@ class SparkConnectorTestBase
         // Stop the spark session
         m_sparkSession.stop();
     }
+
+
 
 
 }  // end SparkConnectorTestBase

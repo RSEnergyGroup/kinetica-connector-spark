@@ -124,7 +124,7 @@ Features include:
 * No coding, other than the input SQL statement
 * *Spark* types are automatically mapped to *Kinetica* types
 * Tables can be automatically created or truncated
-* Schemas can be version controlled with [Template Tables](#template-tables)
+* Schemas can be version controlled with [Template Tables](#templated-tables)
 * Differences between *Spark DataFrames* and *Kinetica* tables are automatically
   reconciled
 
@@ -150,11 +150,19 @@ An example SSL configuration is available in the connector distribution, under
 ``src/test/resources/gpudb-secure.properties``.
 
 
-### Template Tables
+### Templated Tables
 
-The *template table* feature is activated when ``table.use_templates`` is set to
+The *templated table* feature is activated when ``table.use_templates`` is set to
 ``true``.  It provides a method for schema versioning when tables are created
 with the loader.
+
+There are two different approaches to loading templates, one managed with sql and
+another managed through json files.
+
+#### SQL Template Tables
+
+SQL Template Tables are enabled by default when enabling the template feature
+unless ``json`` is specified as the ``source.template_type``.
 
 To use this feature, a *template table* and collection must be created, where
 the naming follows a specific pattern derived from the destination table name
@@ -178,6 +186,78 @@ versions might exist:
 When creating the table ``avro_test``, the loader will use the schema from
 ``avro_test.20180230`` because it shows up first in the reverse sort.
 
+#### Json Template Files
+
+Json Template Files are enabled when enabling the template feature
+and when ``json`` is specified as the ``source.template_type``.
+
+Unlike the SQL functionality above, the json templates require a json file
+matching the structure of the following sample to be created, typically saved alongside
+the dataset(avro, parquet, csv) and in the same directory. This file is named
+``_KINETICA.json`` by default.
+
+    {
+      "kinetica_schema" : {
+        "typeProperties" : {
+          "test_int" : [ "data" ]
+        },
+        "typeSchema" : {
+          "type" : "record",
+          "fields" : [ {
+            "name" : "test_int",
+            "type" : "int"
+          }]
+        },
+        "isReplicated" : false
+      }
+    }
+
+The top-level entry in the json file is ``kinetica_schema``. The separate root 
+object is to allow for multiple pieces of metadata to live in the same json file
+if required. The remaining properties are based on the data in Kinetica Rest API
+requests.
+
+##### KineticaJsonSchemaHelper Usage
+
+The recommended way to create a json schema document is to generate it from a table
+inside of Kinetica. A common use case is to save the table after performing egress
+
+    val host = "<KineticaHostName/IP>"
+    val username = "<Username>"
+    val password = "<Password>"
+    val url = s"http://${host}:9191"
+    val options = Map(
+       "database.url" -> url,
+       "database.username" -> username,
+       "database.password" -> password,
+       "spark.num_partitions" -> "8",
+       "table.name" -> "airline"
+    )
+    val path = "hdfs://my_kinetica_data/airline"
+    
+    val df = spark.read.format("com.kinetica.spark").options(options).load()
+    df.write.format("parquet").mode("overwrite").save(path)
+    
+    val helper = KineticaJsonSchemaHelper(options, spark)    
+    helper.saveKineticaSchema(path)
+
+Now that this schema is saved alongside the data, the loader can automatically
+generate the exact same schema (including properties such as shard keys, replication,
+or full text) when pushing the data up to the same or another Kinetica cluster.
+
+For those taking a programmatic approach to loading data into Kinetica, the helper
+class also provides methods for directly creating a table based on the configuration
+options and a loaded json file. The following scala sample continues from above and
+creates a copy of the `airline` sample table in the collection named `TEMP` without
+loading data into it.
+
+    helper.loadKineticaSchema(path) match {
+      case Some(schema) => helper.createTableFromSchema("airline_copy","TEMP", schema)
+      case None => throw new RunTimeException("Json schema could not be loaded")
+    }    
+ 
+At this point the table has been created based on the json template and a dataframe save
+operation using the connector can now be issued while keeping the exact original schema.
 
 ### Schema Merging
 
@@ -1395,17 +1475,20 @@ the access mechanism.
 | ``table.truncate``              | ``false`` | Truncate table if it exists
 | ``table.truncate_to_size``      | ``false`` | Truncate strings when inserting into charN columns
 | ``table.update_on_existing_pk`` | ``false`` | If the target table, ``table.name``, has a primary key, update records in it with matching primary key values from records being ingested
-| ``table.use_templates``         | ``false`` | Enable *template tables*; see [Template Tables](#template-tables) section for details  **Data Loader Only**
+| ``table.use_templates``         | ``false`` | Enable *templated tables*; see [Templated Tables](#templated-tables) section for details  **Data Loader Only**
+| 
 
 For the *Data Loader*, the following properties specify the data source &
 format.
 
-| Property Name          | Default   | Description
-| :---                   | :---      | :---
-| ``source.csv_header``  | ``false`` | If format is CSV, whether the file has column headers or not; if ``true``, the column headers will be used as column names in creating the target table if it doesn't exist and mapping source fields to target columns if the table does exist.  If ``false``, columns will be mapped by position.
-| ``source.data_format`` | *<none>*  | Indicates the format of the file(s) in ``source.data_path``.  Supported formats include:  ``avro``, ``csv``, ``json``, ``orc``, & ``parquet``
-| ``source.data_path``   | *<none>*  | File or directory in Hadoop or the local filesystem containing source data
-| ``source.sql_file``    | *<none>*  | File containing a SQL-compliant query to use to retrieve data from *Hive* or *Spark-SQL*
+| Property Name                   | Default   | Description
+| :---                            | :---      | :---
+| ``source.csv_header``           | ``false`` | If format is CSV, whether the file has column headers or not; if ``true``, the column headers will be used as column names in creating the target table if it doesn't exist and mapping source fields to target columns if the table does exist.  If ``false``, columns will be mapped by position.
+| ``source.data_format``          | *<none>*  | Indicates the format of the file(s) in ``source.data_path``.  Supported formats include:  ``avro``, ``csv``, ``json``, ``orc``, & ``parquet``
+| ``source.data_path``            | *<none>*  | File or directory in Hadoop or the local filesystem containing source data
+| ``source.sql_file``             | *<none>*  | File containing a SQL-compliant query to use to retrieve data from *Hive* or *Spark-SQL*
+| ``source.template_type``        | ``sql``   | Specify type of template for *templated tables*; see [Templated Tables](#templated-tables) section for details
+| ``source.json_schema_filename`` | ``_KINETICA.json``   | Specify the filename for the json schema definition for *templated tables*; see [Templated Tables](#templated-tables) section for details
 
 For the *Ingest/Egress Processor*, the following properties govern
 evolving/drifting schemas.

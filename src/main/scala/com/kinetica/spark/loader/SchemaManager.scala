@@ -9,6 +9,8 @@ import com.gpudb.ColumnProperty
 import com.gpudb.GPUdb
 import com.gpudb.GPUdbBase
 import com.gpudb.Type
+import com.kinetica.spark.json.KineticaJsonSchemaHelper
+import com.kinetica.spark.util.ConfigurationConstants
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.spark.sql.types.DataType
 import org.apache.spark.sql.types.DataTypes
@@ -27,6 +29,7 @@ class SchemaManager (conf: LoaderConfiguration) extends LazyLogging {
     private val tableName: String = conf.tablename
     private val schemaName: String = conf.schemaname
     private val useTemplates: Boolean = conf.useTemplates
+    private val templateType: String = conf.templateType
 
     private var isReplicated: Boolean = false
 
@@ -38,12 +41,23 @@ class SchemaManager (conf: LoaderConfiguration) extends LazyLogging {
     def setupSchema(loaderConfig: LoaderConfiguration, sparkSchema: StructType): java.util.HashMap[Integer, Integer] = {
 
         if(this.useTemplates) {
-            // lookup schema from template
-            this.resolveTemplate()
-            if (loaderConfig.hasTable()) {
-                this.gpudb.clearTable(this.tableName, null, null)
+            templateType match {
+                case ConfigurationConstants.TEMPLATE_TYPE_JSON => {
+                    val jsonSchemaHelper = new KineticaJsonSchemaHelper(loaderConfig)
+                    jsonSchemaHelper.createTableFromSchema()
+
+                    val response: ShowTableResponse = this.gpudb.showTable(this.tableName, null)
+                    this.setTypeFromResponse(response, 0)
+                }
+                case _ => {
+                    // assume sql template
+                    this.resolveTemplate()
+                    if (loaderConfig.hasTable()) {
+                        this.gpudb.clearTable(this.tableName, null, null)
+                    }
+                    this.createTable()
+                }
             }
-            this.createTable()
         }
         else if (loaderConfig.hasTable()) {
             // use existing schema from table
@@ -177,11 +191,12 @@ class SchemaManager (conf: LoaderConfiguration) extends LazyLogging {
 
                 val sourceDT: Class[_] = sourceCol.getType
                 val destDT: Class[_] = destCol.getType
+                val colProps = destCol.getProperties.toList
 
-                if (!validConversion(sourceDT, destDT)) {
+                if (!validConversion(sourceDT, destDT, colProps)) {
                     throw new Exception(
-                        String.format("Could not convert datatype for column <%s>: %s -> %s",
-                            sourceCol.getName, sourceDT.getName, destDT.getName))
+                        String.format("Could not convert datatype for column <%s>: %s -> %s (%s)",
+                            sourceCol.getName, sourceDT.getName, destDT.getName, colProps.mkString("|")))
                 }
 
                 val destIdx: Int = this.destType.getColumnIndex(destCol.getName)
@@ -279,7 +294,9 @@ class SchemaManager (conf: LoaderConfiguration) extends LazyLogging {
         new Type(columns)
     }
 
-    private def validConversion(sourceDT: Class[_], destDT: Class[_]): Boolean = {
+    private def validConversion(sourceDT: Class[_], destDT: Class[_], colProps: List[String]): Boolean = {
+        val hasDateTime = List("date","datetime","time").exists(colProps.contains(_))
+
         if (destDT == sourceDT) {
             // same types
             true
@@ -296,7 +313,10 @@ class SchemaManager (conf: LoaderConfiguration) extends LazyLogging {
             // timestamp conversion
             true
         } else {
-          false
+            // allow fallback to cast long to string as well as datetime conversions
+            classOf[java.lang.String].isAssignableFrom(destDT) &&
+              classOf[java.lang.Long].isAssignableFrom(sourceDT) &&
+              hasDateTime
         }
     }
 }

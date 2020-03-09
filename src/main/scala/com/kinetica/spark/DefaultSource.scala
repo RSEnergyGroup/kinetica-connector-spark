@@ -1,7 +1,6 @@
 package com.kinetica.spark
 
 import com.kinetica.spark.util.Constants
-
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.SaveMode
@@ -17,3 +16,8 @@ import org.apache.spark.sql.sources.RelationProvider
  * details.
  */
 class DefaultSource extends com.kinetica.spark.datasourcev1.DefaultSource {}
+
+// object used for magic string elimination
+object DefaultSource extends DefaultSource {
+  val packageName: String = this.getClass.getPackage.getName
+}

@@ -60,9 +60,6 @@ trait SparkConnectorNewFeatures
          */
         test(s"""$package_description KECO-1611: Case 1 -- Use offset and limit for egressing
              | from Kinetica""".stripMargin.replaceAll("\n", "") ) {
-
-            logger.info( s"""$package_description KECO-1611: Case 1 -- Use offset and limit for egressing
-             | from Kinetica""".stripMargin.replaceAll("\n", "")  );
             
             // This test fetches some data from the table, and ensures that
             // the offset and limit were honored
@@ -144,10 +141,6 @@ trait SparkConnectorNewFeatures
         test(s"""$package_description KECO-1611: Case 2 -- use offset and limit
              | for egressing from Kinetica with offset beyond the table size
              | for some executors""".stripMargin.replaceAll("\n", "") ) {
-
-            logger.info( s"""$package_description KECO-1611: Case 2 -- use offset and limit
-             | for egressing from Kinetica with offset beyond the table size
-             | for some executors""".stripMargin.replaceAll("\n", "")  );
             
             // This test fetches some data from the table, and ensures that
             // the offset and limit were honored
@@ -232,11 +225,6 @@ trait SparkConnectorNewFeatures
              | should get zero records instead
              | failing""".stripMargin.replaceAll("\n", "") ) {
 
-            logger.info(s"""$package_description KECO-1611: Case 3 -- use offset and limit
-             | for egressing from Kinetica with offset beyond the table size;
-             | should get zero records instead
-             | failing""".stripMargin.replaceAll("\n", "") );
-
             // This test fetches some data from the table, and ensures that
             // the offset and limit were honored
             
@@ -318,11 +306,6 @@ trait SparkConnectorNewFeatures
              | for egressing from Kinetica with offset same as the table size;
              | should get zero records instead
              | failing""".stripMargin.replaceAll("\n", "") ) {
-
-            logger.info( s"""$package_description KECO-1611: Case 4 -- use offset and limit
-             | for egressing from Kinetica with offset same as the table size;
-             | should get zero records instead
-             | failing""".stripMargin.replaceAll("\n", "" ) );
             
             // This test fetches some data from the table, and ensures that
             // the offset and limit were honored
@@ -404,10 +387,6 @@ trait SparkConnectorNewFeatures
         test(s"""$package_description KECO-1611: Case 5 -- use offset and limit
              | for egressing from Kinetica with negative offset
              | """.stripMargin.replaceAll("\n", "") ) {
-
-            logger.info( s"""$package_description KECO-1611: Case 5 -- use offset and limit
-             | for egressing from Kinetica with negative offset
-             | """.stripMargin.replaceAll("\n", "" ) );
             
             // This test fetches some data from the table, and ensures that
             // the offset and limit were honored
@@ -494,10 +473,6 @@ trait SparkConnectorNewFeatures
         test(s"""$package_description KECO-1611: Case 6 -- use offset and limit
              | for egressing from Kinetica with negative limit
              | """.stripMargin.replaceAll("\n", "") ) {
-
-            logger.info( s"""$package_description KECO-1611: Case 6 -- use offset and limit
-             | for egressing from Kinetica with negative limit
-             | """.stripMargin.replaceAll("\n", "" ) );
             
             // This test fetches some data from the table, and ensures that
             // the offset and limit were honored

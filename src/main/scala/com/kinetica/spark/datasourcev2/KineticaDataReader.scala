@@ -62,7 +62,7 @@ class KineticaDataReader (
             // since no filters are used
             KineticaEgressUtilsNativeClient.getRowsFromKinetica( gpudbConn, tableName,
                                                                  requiredColumns, requiredSchema,
-                                                                 offset, limit, batchSize );
+                                                                 offset, limit, batchSize, true );
         } else {
             logger.debug("KineticaDataReader: Filters ARE given; use the JDBC connector");
             // Use the JDBC connector to get the records

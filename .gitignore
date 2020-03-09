@@ -16,7 +16,9 @@ spark-solr.iml
 spark-solr.ipr
 spark-solr.iws
 
+# intellij files and configurations
 /.idea/
+*.iml
 
 # spark runtime file
 /metastore_db/

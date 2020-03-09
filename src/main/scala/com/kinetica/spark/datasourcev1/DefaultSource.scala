@@ -48,3 +48,9 @@ class DefaultSource extends RelationProvider with CreatableRelationProvider with
 
     override def shortName(): String = Constants.KINETICA_FORMAT
 }
+
+// object used for magic string elimination
+object DefaultSource extends DefaultSource {
+    val packageName: String = this.getClass.getPackage.getName
+}
+
