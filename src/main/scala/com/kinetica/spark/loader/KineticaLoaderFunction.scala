@@ -3,6 +3,7 @@ package com.kinetica.spark.loader
 import java.time.Duration
 import java.time.Instant
 import java.util.Date
+import java.util.{Iterator => JIterator}
 
 //remove if not needed
 import com.gpudb.BulkInserter
@@ -29,7 +30,7 @@ class KineticaLoaderFunction (
 
         val kbl: KineticaBulkLoader = new KineticaBulkLoader(loaderConfig)
         val bi: BulkInserter[GenericRecord] = kbl.GetBulkInserter()
-        //val bi: BulkInserter[GenericRecord] = this.loaderConfig.getBulkInserter
+
         val start: Instant = Instant.now()
         val rowcount: Long = insertRows(rowset, bi)
         val end: Instant = Instant.now()
@@ -39,9 +40,10 @@ class KineticaLoaderFunction (
     }
 
     private def insertRows(
-        rowset: java.util.Iterator[Row],
+        rowset: JIterator[Row],
         bi: BulkInserter[GenericRecord]): Long = {
         logger.info("Starting insert into table: {}", bi.getTableName)
+
         var rowcount: Long = 0
         while (rowset.hasNext) {
             val row: Row = rowset.next()
@@ -59,13 +61,14 @@ class KineticaLoaderFunction (
                         throw new Exception(msg, ex)
                     }
             }
-            { rowcount += 1; rowcount - 1 }
+            rowcount += 1;
             if (rowcount % 10000 == 0) {
                 logger.info("Inserted rows: {}", rowcount)
             }
         }
         bi.flush()
         rowcount
+
     }
 
     private def convertRow(row: Row): GenericRecord = {

@@ -330,7 +330,6 @@ trait TestJsonSchemaHelper
       assert(json == expectedJson)
     }
 
-    // RSEG_SPACING_BACKEND.backend_header_directional_survey_view
     /**
      * Test for correctly getting the table name
      */

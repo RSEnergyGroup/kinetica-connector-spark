@@ -2,6 +2,18 @@
 
 ## Version 7.0
 
+### Version 7.0.7.0 -- 2020-03-15
+
+#### Added
+-   Long to Datetime, Date, and Timestamp logic (older versions of avro prior
+    to spark 2.4 would save a datetime column as Long)
+-   Json Schema Templating functionality was added. See README.md
+
+#### Fixed
+-   Collection names with periods or requests with brackets did not properly
+    parse out schema and table name. Can now submit an against tables named
+    `[foo.bar].[foobar]` to read/write table `foobar` in the collection `foo.bar`
+
 ### Version 7.0.6.1 -- 2020-02-05
 
 #### Added
@@ -99,7 +111,7 @@
 -   A new configuration property called `ingester.use_timezone` which allows
     the user to set a timezone for parsing date/time/datetime with respect
     to it.  Omitting it uses the system's default timezone.
--   A new configuration property call `ingester.fail_on_errors` which allows
+-   A new configuration property called `ingester.fail_on_errors` which allows
     the ingester process to continue when encountering bad rows.  With the
     default value of `false`, the process will only log warnings and continue.
     With the value of `true`, it will throw an exception on the first

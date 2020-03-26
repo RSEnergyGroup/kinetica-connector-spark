@@ -1448,6 +1448,7 @@ The following properties control the authentication & connection to *Kinetica*.
 | ``spark.datasource_api_version``   | ``v1``      | Which Spark DataSource API to use (accepted values: ``v1`` and ``v2``)  **Data Loader Only**
 | ``spark.num_partitions``           | ``4``       | Number of *Spark* partitions to use for extracting data  **Egress Processor Only**
 | ``spark.rows_per_partition``       | *<none>*    | Number of records per partition *Spark* should segment data into before loading into *Kinetica*; if not specified, *Spark* will use the same number of partitions it used to retrieve the source data  **Data Loader Only**
+| ``spark.force_num_partitions``     | ``false``   | Force the Data Loader to use the ``spark.num_partitions`` parameter segment data into before loading into *Kinetica*; Supersedes the use of ``spark.rows_per_partition`` **Data Loader Only**
 
 
 The following apply for the *Data Loader* if SSL is used. A keystore or

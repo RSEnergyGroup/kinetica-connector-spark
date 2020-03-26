@@ -33,6 +33,9 @@ class LoaderConfiguration(sc:SparkContext, params: Map[String, String])
     @BeanProperty
     val partitionRows: Int = params.getOrElse(CONNECTOR_ROWSPERPARTITION_PARAM, (-1).toString).toInt
 
+    @BooleanBeanProperty
+    val forceLoaderPartitions: Boolean = params.getOrElse(CONNECTOR_FORCE_NUMPARTITIONS_LOADER_PARAM, "false").toBoolean
+
     @BeanProperty
     val csvHeader: Boolean = params.getOrElse(KINETICA_CSV_HEADER, false.toString).toBoolean
 

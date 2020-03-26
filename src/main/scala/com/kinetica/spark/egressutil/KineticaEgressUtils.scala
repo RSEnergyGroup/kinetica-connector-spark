@@ -781,7 +781,7 @@ object KineticaEgressUtilsNativeClient extends LazyLogging {
             val recordRange = startRow to (numRows + startRow - 1)
 
             // Create a sliding iterator with a step size of batchSize
-            val groupedRanges = recordRange.iterator.sliding( batchSize.toInt, batchSize.toInt ).toList
+            val groupedRanges = recordRange.iterator.grouped( batchSize.toInt ).toList
 
             // Use a lazy view to stream the records one batch at a time
             groupedRanges.view.map( group => {

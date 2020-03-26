@@ -149,7 +149,7 @@ class SparkKineticaDriver(val params: mutable.Map[String, String] = scala.collec
             throw new Exception("You must set loader.sql-file or loader.data-file.")
         }
 
-        if(loaderConfig.partitionRows > 0) {
+        if(loaderConfig.partitionRows > 0 || loaderConfig.forceLoaderPartitions) {
             inputDs = repartition(inputDs)
         }
 
@@ -157,13 +157,22 @@ class SparkKineticaDriver(val params: mutable.Map[String, String] = scala.collec
     }
 
     private def repartition(inputDs: DataFrame): DataFrame = {
-        val origPartitions: Int = inputDs.javaRDD.getNumPartitions
-        val numRows: Long = inputDs.count
-        logger.info("Original dataset has <{}> rows and <{}> partitions.", numRows, origPartitions)
+        if(loaderConfig.forceLoaderPartitions) {
+            inputDs.repartition(loaderConfig.numPartitions)
+        } else {
+            val origPartitions: Int = inputDs.javaRDD.getNumPartitions
+            val numRows: Long = inputDs.count
+            logger.info("Original dataset has <{}> rows and <{}> partitions.", numRows, origPartitions)
 
-        val newPartitions: Int = (numRows / loaderConfig.partitionRows.toLong).toInt + 1
-        logger.info("Repartitioning dataset to <{}> partitions.", newPartitions)
-        inputDs.repartition(newPartitions)
+            val newPartitions: Int = (numRows / loaderConfig.partitionRows.toLong).toInt + 1
+
+            if(origPartitions < newPartitions) {
+                logger.info("Repartitioning dataset to <{}> partitions.", newPartitions)
+                inputDs.repartition(newPartitions)
+            } else {
+                inputDs
+            }
+        }
     }
 
     private def parseArgs(args: Array[String]): PropertiesConfiguration = {
